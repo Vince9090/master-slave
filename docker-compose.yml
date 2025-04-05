@@ -1,0 +1,61 @@
+version: '3'
+services:
+
+  mysql_master:
+    image: mariadb:10.3
+    env_file:
+      - ./master/mysql_master.env
+    container_name: "mysql_master"
+    restart: "no"
+    ports:
+      - 4406:3306
+    volumes:
+      - ./master/conf/mysql.conf.cnf:/etc/mysql/conf.d/mysql.conf.cnf
+      - ./master/data:/var/lib/mysql
+      - ./db:/db
+    networks:
+      - overlay
+
+  mysql_slave:
+    image: mariadb:10.3
+    env_file:
+      - ./slave/mysql_slave.env
+    container_name: "mysql_slave"
+    restart: "no"
+    ports:
+      - 5506:3306
+    depends_on:
+      - mysql_master
+    volumes:
+      - ./slave/conf/mysql.conf.cnf:/etc/mysql/conf.d/mysql.conf.cnf
+      - ./slave/data:/var/lib/mysql
+      - ./db:/db
+    networks:
+      - overlay
+    
+  mini-lotto-api:
+    build: ./mini-lotto-api
+    container_name: "mini-lotto-api"
+    environment:
+      - PORT=8000
+      - API_KEY=nigga
+      - API_SECRET_KEY=niggers
+      - DB_HOST_MASTER=mysql_master
+      - DB_HOST_SLAVE=mysql_slave
+      - DB_MASTER_USER=mydb_user
+      - DB_SLAVE_USER=mydb_slave_user
+      - DB_MASTER_PASSWORD=mydb_pwd
+      - DB_SLAVE_PASSWORD=mydb_slave_pwd
+      - DB_NAME=mini_lotto
+    restart: "always"
+    ports:
+      - 8000:8000
+    depends_on:
+      - mysql_master
+      - mysql_slave
+    networks:
+      - overlay
+
+networks:
+  overlay:
+
